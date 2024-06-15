@@ -2,14 +2,17 @@
 #include "vec3.h"
 #include <iostream>
 #include "ray.h"
-
-color ray_color(const ray& r) {
-    return color(0,0,0);//temporary
-}
-
-double lerp(double start, double end, double at){
+template <typename T>
+T lerp(T start, T end, double at){
     return (1.0-at)*start + at*end;
 }
+
+color ray_color(const ray& r) {
+    vec3 unit_dir = unit_vector(r.direction());
+    auto at = 0.5*(unit_dir.y()+1.0);
+    return lerp(color(1.0,1.0,1.0), color(0.5,0.7,1.0), at);
+}
+
 int main() {
 
     // Image
