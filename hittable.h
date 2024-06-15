@@ -18,8 +18,8 @@ struct hit_record {//data for a hit
 class hittable {// abstract class for all "objects" that rays can hit
   public:
     virtual ~hittable() = default;
-
-    virtual bool hit(const ray& r, double ray_tmin, double ray_tmax, hit_record& rec) const = 0;// restricts t to between a min and max
+  //subtype polymorthism for abstract class hittable
+    virtual bool hit(const ray& r, interval ray_t, hit_record& rec) const = 0;// restricts t to between a min and max
 };
 
 #endif

@@ -32,6 +32,7 @@ inline T lerp(T start, T end, double at){
 // Common Headers
 
 #include "color.h"
+#include "interval.h"
 #include "ray.h"
 #include "vec3.h"
 
