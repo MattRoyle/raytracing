@@ -1,33 +1,13 @@
-#include "color.h"
-#include "vec3.h"
-#include <iostream>
-#include "ray.h"
-template <typename T>
-T lerp(T start, T end, double at){
-    return (1.0-at)*start + at*end;
-}
+#include "headers.h"
+#include "hittable.h"
+#include "hittable_list.h"
+#include "sphere.h"
 
-double hit_sphere(const point3& sphere_center, double sphere_radius, const ray& r){
-    vec3 offsetCenter= sphere_center - r.origin();// sphere's position relative to the ray start
-    auto a = r.direction().length_squared(); //derived value for a in quadratic to find the t intercections with the sphere
-    auto h = dot(r.direction(), offsetCenter);
-    auto c = offsetCenter.length_squared() - sphere_radius*sphere_radius;
-    auto discriminant = h*h - a*c;
-    if (discriminant < 0) // three cases: 0 means 1 solution (intersection), positive means 2 solutions, negative means no real solutions
-    {
-        return -1.0;
-    }else{
-        return (h - sqrt(discriminant))/a;//return the (negative) solution
+color ray_color(const ray& r, const hittable& world) {
+    hit_record record;
+    if (world.hit(r, 0, INF, record)) {
+        return 0.5 * (record.normal + color(1,1,1));
     }
-}
-
-color ray_color(const ray& r) {
-    auto t = hit_sphere(point3(0,0,-1), 0.5, r);//sphere at -1 on z axis
-    if (t>0.0){
-        vec3 N = unit_vector(r.at(t) - vec3(0,0,-1));// intersection point minus the circle center
-        return 0.5*color(N.x()+1, N.y()+1, N.z()+1);// N is between -1 and 1 so we add 1 then multiply by 0.5 to get 0 to 1
-    }
-       
 
     vec3 unit_dir = unit_vector(r.direction());
     auto at = 0.5*(unit_dir.y()+1.0);
@@ -48,6 +28,15 @@ int main() {
     auto viewport_height = 2.0;
     auto viewport_width = viewport_height * (double(image_width)/image_height);
     //image height and width are int versions so only aproximations of the values calculated by the aspect ratio 
+
+
+    // World
+
+    hittable_list world;
+
+    world.add(make_shared<sphere>(point3(0,0,-1), 0.5));
+    world.add(make_shared<sphere>(point3(0,-100.5,-1), 100));
+
 
     // Camera
     auto focal_length = 1.0; //inital value of orthagonal dist from viewport
@@ -74,7 +63,7 @@ int main() {
             vec3 ray_dir = pixel_center - camera_center;
             ray ray(camera_center,ray_dir);
 
-            color pixel_color = ray_color(ray);// creates a colour using the x and y positions
+            color pixel_color = ray_color(ray, world);// creates a colour using the x and y positions
             write_color(std::cout, pixel_color);//writes to the out
         }
     }
