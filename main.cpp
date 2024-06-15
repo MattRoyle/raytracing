@@ -9,15 +9,15 @@ T lerp(T start, T end, double at){
 
 double hit_sphere(const point3& sphere_center, double sphere_radius, const ray& r){
     vec3 offsetCenter= sphere_center - r.origin();// sphere's position relative to the ray start
-    auto a = dot(r.direction(),r.direction()); //derived value for a in quadratic to find the t intercections with the sphere
-    auto b = -2.0 * dot(r.direction(), offsetCenter);
-    auto c = dot(offsetCenter, offsetCenter) - sphere_radius *sphere_radius;
-    auto discriminant = b * b - 4.0 * a * c;
+    auto a = r.direction().length_squared(); //derived value for a in quadratic to find the t intercections with the sphere
+    auto h = dot(r.direction(), offsetCenter);
+    auto c = offsetCenter.length_squared() - sphere_radius*sphere_radius;
+    auto discriminant = h*h - a*c;
     if (discriminant < 0) // three cases: 0 means 1 solution (intersection), positive means 2 solutions, negative means no real solutions
     {
         return -1.0;
     }else{
-        return (-b - sqrt(discriminant)/(2.0*a));//return the (negative) solution
+        return (h - sqrt(discriminant))/a;//return the (negative) solution
     }
 }
 
