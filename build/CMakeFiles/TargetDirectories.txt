@@ -1,0 +1,3 @@
+S:/CSY2/COMP2006-C++/raytracing/build/CMakeFiles/raytracing.dir
+S:/CSY2/COMP2006-C++/raytracing/build/CMakeFiles/ALL_BUILD.dir
+S:/CSY2/COMP2006-C++/raytracing/build/CMakeFiles/ZERO_CHECK.dir

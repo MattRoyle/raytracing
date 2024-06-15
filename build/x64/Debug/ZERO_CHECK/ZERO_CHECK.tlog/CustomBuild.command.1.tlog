@@ -1,0 +1,10 @@
+^S:\CSY2\COMP2006-C++\RAYTRACING\BUILD\CMAKEFILES\4B4914E3EB71F2179678E8D8803440E7\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SS:/CSY2/COMP2006-C++/raytracing -BS:/CSY2/COMP2006-C++/raytracing/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file S:/CSY2/COMP2006-C++/raytracing/build/raytracing.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
