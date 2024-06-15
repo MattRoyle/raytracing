@@ -7,7 +7,19 @@ T lerp(T start, T end, double at){
     return (1.0-at)*start + at*end;
 }
 
+bool hit_sphere(const point3& sphere_center, double sphere_radius, const ray& r){
+    vec3 offsetCenter= sphere_center - r.origin();// sphere's position relative to the ray start
+    auto a = dot(r.direction(),r.direction()); //derived value for a in quadratic to find the t intercections with the sphere
+    auto b = -2.0 * dot(r.direction(), offsetCenter);
+    auto c = dot(offsetCenter, offsetCenter) - sphere_radius *sphere_radius;
+    auto discriminant = b * b - 4.0 * a * c;
+    return (discriminant>=0); // three cases: 0 means 1 solution (intersection), positive means 2 solutions, negative means no real solutions
+}
+
 color ray_color(const ray& r) {
+    if (hit_sphere(point3(0,0,-1), 0.5, r))//sphere at -1 on z axis
+        return color(1, 0, 0);//full r channel
+
     vec3 unit_dir = unit_vector(r.direction());
     auto at = 0.5*(unit_dir.y()+1.0);
     return lerp(color(1.0,1.0,1.0), color(0.5,0.7,1.0), at);
