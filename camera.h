@@ -9,35 +9,38 @@ class camera {
   public:
     double aspect_ratio = 16.0 / 9.0;//aspect ration is ideal ratio
     int image_width = 400;
-
+    int samples_per_pixel = 10;
+    
     void render(const hittable& world) {
+        initialize();
         std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";//formatting the .ppm file
         for (int j = 0; j < image_height; j++) {
             std::clog << "\rScanlines remaining: " << (image_height - j) << ' ' << std::flush;//writes to the console
             for (int i = 0; i < image_width; i++) {
-                point3 pixel_center = pixel_origin + (i*pixel_delta_u)+(j*pixel_delta_v);
-                vec3 ray_dir = pixel_center - camera_center;
-                ray ray(camera_center,ray_dir);
-
-                color pixel_color = ray_color(ray, world);// creates a colour using the x and y positions
-                write_color(std::cout, pixel_color);//writes to the out
+                color pixel_color(0,0,0);
+                for (int sample = 0; sample < samples_per_pixel; sample++) {
+                    ray r = get_ray(i, j);
+                    pixel_color += ray_color(r, world);
+                }
+                write_color(std::cout, pixel_samples_scale * pixel_color);
             }
         }
         std::clog << "\rDone.                 \n";
     }
 
   private:
-    int    image_height;   // Rendered image height
-    point3 camera_center;         // Camera center
-    point3 pixel_origin;    // Location of pixel 0, 0
-    vec3   pixel_delta_u;  //horizontal pixel offset
+    int    image_height;
+    double pixel_samples_scale;  // Color scale factor for a sum of pixel samples
+    point3 camera_center;
+    point3 pixel_origin; // Location of pixel 0, 0
+    vec3   pixel_delta_u; //horizontal pixel offset
     vec3   pixel_delta_v; // vertical pixel offset
 
     void initialize() {
        
         image_height = int(image_width / aspect_ratio);
         image_height = (image_height < 1) ? 1 : image_height; // calculate the image height, and ensure that it's at least 1.
-
+        pixel_samples_scale = 1.0 / samples_per_pixel;
         auto focal_length = 1.0; //inital value of orthagonal dist from viewport
         camera_center = point3(0, 0, 0);
         // Viewport widths less than one are ok since they are real valued.
@@ -54,6 +57,26 @@ class camera {
         // Calculate the location of the upper left pixel.
         auto viewport_upper_left = camera_center - vec3(0, 0, focal_length) - viewport_u/2 - viewport_v/2;
         pixel_origin = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+    }
+
+     ray get_ray(int i, int j) const {
+        // Construct a camera ray originating from the origin and directed at randomly sampled
+        // point around the pixel location i, j.
+
+        auto offset = sample_square();
+        auto pixel_sample = pixel_origin
+                          + ((i + offset.x()) * pixel_delta_u)
+                          + ((j + offset.y()) * pixel_delta_v);
+
+        auto ray_origin = camera_center;
+        auto ray_direction = pixel_sample - ray_origin;
+
+        return ray(ray_origin, ray_direction);
+    }
+
+    vec3 sample_square() const {
+        // Returns the vector to a random point in the [-.5,-.5]-[+.5,+.5] unit square.
+        return vec3(random_double() - 0.5, random_double() - 0.5, 0);
     }
 
     color ray_color(const ray& r, const hittable& world) {
