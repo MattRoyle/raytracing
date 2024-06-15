@@ -11,7 +11,7 @@ public:
     const point3& origin() const {return m_origin;}//getter for immutable reference to origin member
     const vec3& direction() const {return m_dir;}//getter for direction
 
-    point3 at(double t){//returns the point on the line of the vector i.e. t could be time
+    point3 at(double t) const {//returns the point on the line of the vector i.e. t could be time
         return m_origin + t*m_dir;
     }
 private:
