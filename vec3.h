@@ -1,11 +1,6 @@
 #ifndef VEC3_H
 #define VEC3_H
 
-#include <cmath>
-#include <iostream>
-
-using std::sqrt;
-
 class vec3 {//vector class with 3 doubles
   public:
     double e[3];
@@ -133,6 +128,16 @@ inline vec3 random_on_hemisphere(const vec3& normal) {
 
 inline vec3 reflect(const vec3& v, const vec3& n) {//perfect reflection incident to reflected
     return v - 2*dot(v,n)*n;
+}
+
+inline vec3 refract(const vec3& uv, const vec3& n, double etai_over_etat) {
+    auto cos_theta = fmin(dot(-uv, n), 1.0);//not sure of fmin use here
+
+    //snells law: sin_theta_prime = etai_over_etat * sin_theta
+    // R_prime = parallel_component + perpendicular component
+    vec3 r_perpendicular =  etai_over_etat * (uv + cos_theta*n);
+    vec3 r_parallel = -sqrt(fabs(1.0 - r_perpendicular.length_squared())) * n;//can prove this at some point
+    return r_perpendicular + r_parallel;
 }
 
 #endif
