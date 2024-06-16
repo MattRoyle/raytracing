@@ -4,6 +4,7 @@
 #include "headers.h"
 
 #include "hittable.h"
+#include "material.h"
 
 class camera {
   public:
@@ -84,8 +85,11 @@ class camera {
             return color(0,0,0);//exceeded max bounce limit
         hit_record record;
         if (world.hit(r, interval(0.001, INF), record)) {//minimum accounts for float point inaccuracies causing bounces to be started offset from intersection
-            vec3 direction = random_on_hemisphere(record.normal);
-            return 0.5 * ray_color(ray(record.p, direction), depth-1, world);
+            ray scattered;
+            color attenuation;
+            if (record.mat->scatter(r, record, attenuation, scattered))//if the ray doesn't get absorbed
+                return attenuation * ray_color(scattered, depth-1, world);
+            return color(0,0,0);
         }
 
         vec3 unit_dir = unit_vector(r.direction());

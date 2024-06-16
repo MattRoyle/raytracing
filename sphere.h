@@ -5,13 +5,15 @@
 
 class sphere : public hittable {
   public:
-    sphere(const point3& center, double radius) : center(center), radius(fmax(0,radius)) {}
+    sphere(const point3& center, double radius, shared_ptr<material> mat) : m_center(center), m_radius(fmax(0,radius)), m_mat(mat) {
+      
+    }
 
     bool hit(const ray& r, interval ray_t, hit_record& record) const override {
-        vec3 offsetCenter= center - r.origin();// sphere's position relative to the ray start
+        vec3 offsetCenter= m_center - r.origin();// sphere's position relative to the ray start
         auto a = r.direction().length_squared(); //derived value for a in quadratic to find the t intercections with the sphere
         auto h = dot(r.direction(), offsetCenter);
-        auto c = offsetCenter.length_squared() - radius*radius;
+        auto c = offsetCenter.length_squared() - m_radius*m_radius;
 
         auto discriminant = h*h - a*c;
         if (discriminant < 0)
@@ -30,16 +32,17 @@ class sphere : public hittable {
         //records the hit
         record.t = root;
         record.p = r.at(record.t);
-        vec3 outward_normal = (record.p - center) / radius;
+        vec3 outward_normal = (record.p - m_center) / m_radius;
         record.set_face_normal(r, outward_normal);
-        record.normal = (record.p - center) / radius;
-
+        record.normal = (record.p - m_center) / m_radius;
+        record.mat = m_mat;
         return true;
     }
 
   private:
-    point3 center;
-    double radius;
+    point3 m_center;
+    double m_radius;
+    shared_ptr<material> m_mat;
 };
 
 #endif
