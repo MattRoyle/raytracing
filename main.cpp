@@ -31,9 +31,11 @@ int main() {
 
     cam.fov     = 20;
     cam.cam_center = point3(-2,2,1);
-    cam.focus_point   = point3(0,0,-1);
+    cam.look_point   = point3(0,0,-1);
     cam.vup      = vec3(0,1,0);
 
+    cam.defocus_angle = 10.0;
+    cam.focus_dist    = 3.4;
     //render the world 
     cam.render(world);
 }
