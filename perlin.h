@@ -6,9 +6,9 @@
 class perlin {
   public:
     perlin() {
-        randfloat = new double[point_count];//array sized to the number of points in the noise texture
+        randvec = new vec3[point_count];//array sized to the number of points in the noise texture
         for (int i = 0; i < point_count; i++) {//assigns a random value [0, 1] to every point
-            randfloat[i] = random_double();
+            randvec[i] = unit_vector(vec3::random(-1,1));
         }
 
         perm_x = perlin_generate_perm();//generates permutations of sequence 0-255 for each axis
@@ -17,7 +17,7 @@ class perlin {
     }
 
     ~perlin() {
-        delete[] randfloat;
+        delete[] randvec;
         delete[] perm_x;
         delete[] perm_y;
         delete[] perm_z;
@@ -27,32 +27,27 @@ class perlin {
         auto u = p.x() - floor(p.x());
         auto v = p.y() - floor(p.y());
         auto w = p.z() - floor(p.z());//double difference from floored value
-        
-        //hermite cube rounds off the Mach bands
-        u = u*u*(3-2*u);
-        v = v*v*(3-2*v);
-        w = w*w*(3-2*w);
-
+    
         auto i = int(floor(p.x()));
         auto j = int(floor(p.y()));
         auto k = int(floor(p.z()));
-        double c[2][2][2];
+        vec3 c[2][2][2];
 
         for (int di=0; di < 2; di++)
             for (int dj=0; dj < 2; dj++)
                 for (int dk=0; dk < 2; dk++)
-                    c[di][dj][dk] = randfloat[
+                    c[di][dj][dk] = randvec[
                         perm_x[(i+di) & 255] ^
                         perm_y[(j+dj) & 255] ^
                         perm_z[(k+dk) & 255]
                     ];//calculate the noise at each corner of the cube
 
-        return trilinear_interp(c, u, v, w);//interpolate the values with the floored difference
+        return perlin_interp(c, u, v, w);//interpolate the values with the floored difference
     }
 
   private:
     static const int point_count = 256;
-    double* randfloat;
+    vec3* randvec;
     int* perm_x;
     int* perm_y;
     int* perm_z;
@@ -77,17 +72,23 @@ class perlin {
         }
     }
 
-    static double trilinear_interp(double c[2][2][2], double u, double v, double w) {//c is the cube in which the interpolation is preformed
+    static double perlin_interp(const vec3 c[2][2][2], double u, double v, double w) {//returns -1 to 1
+        auto uu = u*u*(3-2*u);//Hermite cubic, smooths Mach bands
+        auto vv = v*v*(3-2*v);
+        auto ww = w*w*(3-2*w);
         auto accum = 0.0;
+
         for (int i=0; i < 2; i++)
             for (int j=0; j < 2; j++)
-                for (int k=0; k < 2; k++)//all 8 corners of the cube
-                    accum += (i*u + (1-i)*(1-u))
-                           * (j*v + (1-j)*(1-v))
-                           * (k*w + (1-k)*(1-w))
-                           * c[i][j][k];//calculates the weights based on the distances u,v,w from the corner
+                for (int k=0; k < 2; k++) {
+                    vec3 weight_v(u-i, v-j, w-k);
+                    accum += (i*uu + (1-i)*(1-uu))
+                           * (j*vv + (1-j)*(1-vv))
+                           * (k*ww + (1-k)*(1-ww))
+                           * dot(c[i][j][k], weight_v);//dots the weight with the current corner
+                }
 
-        return accum;//returns the sum of the weights of each corner
+        return accum;
     }
 };
 

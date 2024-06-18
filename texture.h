@@ -81,13 +81,14 @@ class image_texture : public texture {
 class noise_texture : public texture {
   public:
     noise_texture() {}
-
+     noise_texture(double scale) : m_scale(scale) {}
     color value(double u, double v, const point3& p) const override {//grayscale gradient
-        return color(1,1,1) * noise.noise(p);
+        return color(1,1,1) * 0.5 * (1.0 + noise.noise(p*m_scale));// 0.5 * (1 +...) is to translate the -1 to 1 to [0,1]
     }
 
   private:
     perlin noise;
+    double m_scale;
 };
 
 #endif
