@@ -28,7 +28,7 @@ class lambertian : public material {
         if (scatter_direction.near_zero())
             scatter_direction = rec.normal;//prevents case where the random is close to the inverse of the normal 
 
-        scattered = ray(rec.p, scatter_direction);
+        scattered = ray(rec.p, scatter_direction, r_in.time());
         attenuation = m_albedo;
         return true;
     }
@@ -44,7 +44,7 @@ class metal : public material {
     const override {
         vec3 reflected = reflect(r_in.direction(), rec.normal);//perfect reflection
         reflected = unit_vector(reflected) + (m_fuzz * random_unit_vector());
-        scattered = ray(rec.p, reflected);
+        scattered = ray(rec.p, reflected, r_in.time());
         attenuation = m_albedo;
          return (dot(scattered.direction(), rec.normal) > 0);//only true if the reflected ray is same hemisphere as the normal
          //fuzz may cause the ray to go back into the object
@@ -76,7 +76,7 @@ class dielectric : public material {
         else
             direction = refract(unit_direction, rec.normal, ri);
 
-        scattered = ray(rec.p, direction);
+        scattered = ray(rec.p, direction, r_in.time());
         return true;
     }
 

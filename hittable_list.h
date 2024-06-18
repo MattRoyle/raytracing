@@ -2,6 +2,8 @@
 #define HITTABLE_LIST_H
 
 #include "headers.h"
+
+#include "aabb.h"
 #include "hittable.h"
 
 #include <vector>
@@ -18,6 +20,7 @@ class hittable_list : public hittable {
 
     void add(shared_ptr<hittable> object) {
         hittable_objects.push_back(object);
+        bbox = aabb(bbox, object->bounding_box());//recalcutes the bounding box
     }
 
     bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
@@ -35,6 +38,10 @@ class hittable_list : public hittable {
 
         return hit_anything;
     }
+    aabb bounding_box() const override { return bbox; }//get the bounding box of the objects in the list
+
+  private:
+    aabb bbox;
 };
 
 #endif
