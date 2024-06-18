@@ -48,7 +48,7 @@ class sphere : public hittable {
         record.p = r.at(record.t);
         vec3 outward_normal = (record.p - center) / m_radius;
         record.set_face_normal(r, outward_normal);
-        //record.normal = (record.p - m_center) / m_radius;
+        get_sphere_uv(outward_normal, record.u, record.v);
         record.mat = m_mat;
         return true;
     }
@@ -65,6 +65,21 @@ class sphere : public hittable {
         // Linearly interpolate from center1 to center2 according to time, where t=0 yields
         // center1, and t=1 yields center2.
         return m_center + time*displacement;
+    }
+
+    static void get_sphere_uv(const point3& p, double& u, double& v) {
+        // p: a given point on the sphere of radius one, centered at the origin.
+        // u: returned value [0,1] of angle around the Y axis from X=-1.
+        // v: returned value [0,1] of angle from Y=-1 to Y=+1.
+        //     <1 0 0> yields <0.50 0.50>       <-1  0  0> yields <0.00 0.50>
+        //     <0 1 0> yields <0.50 1.00>       < 0 -1  0> yields <0.50 0.00>
+        //     <0 0 1> yields <0.25 0.50>       < 0  0 -1> yields <0.75 0.50>
+
+        auto theta = acos(-p.y());
+        auto phi = atan2(-p.z(), p.x()) + PI;//0 to PI
+
+        u = phi / (2*PI);
+        v = theta / PI;
     }
 };
 
