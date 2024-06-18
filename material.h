@@ -3,6 +3,8 @@
 
 #include "headers.h"
 
+#include "texture.h"
+
 class hit_record;
 
 class material {
@@ -19,7 +21,8 @@ class material {
 
 class lambertian : public material {
   public:
-    lambertian(const color& albedo) : m_albedo(albedo) {}
+    lambertian(const color& albedo) : m_texture(make_shared<solid_color>(albedo)) {}
+    lambertian(shared_ptr<texture> tex) : m_texture(tex) {}
 
     bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered)
     const override {
@@ -29,12 +32,12 @@ class lambertian : public material {
             scatter_direction = rec.normal;//prevents case where the random is close to the inverse of the normal 
 
         scattered = ray(rec.p, scatter_direction, r_in.time());
-        attenuation = m_albedo;
+        attenuation = m_texture->value(rec.u, rec.v, rec.p);
         return true;
     }
 
   private:
-    color m_albedo;// albedo aka fractional reflectance, i.e. amount reflected
+    shared_ptr<texture> m_texture;
 };
 class metal : public material {
   public:
