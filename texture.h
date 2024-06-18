@@ -81,9 +81,9 @@ class image_texture : public texture {
 class noise_texture : public texture {
   public:
     noise_texture() {}
-     noise_texture(double scale) : m_scale(scale) {}
+    noise_texture(double scale) : m_scale(scale) {}
     color value(double u, double v, const point3& p) const override {//grayscale gradient
-        return color(1,1,1) * 0.5 * (1.0 + noise.noise(p*m_scale));// 0.5 * (1 +...) is to translate the -1 to 1 to [0,1]
+        return color(.5, .5, .5) * (1 + sin(m_scale * p.z() + 10 * noise.octave(p, 7)));//marbel effect wurg sin undulating the stripes
     }
 
   private:
