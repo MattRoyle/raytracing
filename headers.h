@@ -13,7 +13,21 @@ using std::fabs;
 using std::make_shared;
 using std::shared_ptr;
 using std::sqrt;
+inline float Q_rsqrt(float number){//quake inverse sqrt algorithm
+    long i;
+    float x2, y;
+    const float threehalfs = 1.5f;
+    x2 = number * 0.5f;
+    y= number;
+    i = * (long *) &y; // store the bits of the float y in a long by casting the memory address to y from float to long then dereferencing
+    i = 0x5f3759df - (i >> 1); // bit shifts the "float" to the right, including the exponent which becomes 1/2 then negate for -1/2
+    // the hex number is from simplifying and is const = 3/2 * 2^23(127 - u),
+    // where u is a error offset for log(1+x) =~ x + u, u= 0.0438 and the rest is from the IEEE 754 bit definition for float
+    y = * (float *) &i;//store the long as a float
+    y = y * ( threehalfs - (x2 * y * y));// y = 1/y^2 - x, newtons approximation, improves presision of functions, could be repeated
 
+    return y;
+}
 // Constants
 
 const double INF = std::numeric_limits<double>::infinity();

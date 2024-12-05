@@ -6,23 +6,29 @@
 class aabb {//axis aligned bounding box
   public:
     interval x, y, z;//bounding intervals in each axis
+    static const aabb empty, universe;
 
     aabb() {} // default AABB is empty, since intervals are empty by default.
 
     aabb(const interval& x, const interval& y, const interval& z)
-      : x(x), y(y), z(z) {}
+      : x(x), y(y), z(z) {
+        pad_to_min();
+      }
 
     aabb(const point3& a, const point3& b) {
         // a and b as extrema for the bounding box, particular minimum/maximum for every axis
         x = (a[0] <= b[0]) ? interval(a[0], b[0]) : interval(b[0], a[0]);
         y = (a[1] <= b[1]) ? interval(a[1], b[1]) : interval(b[1], a[1]);
         z = (a[2] <= b[2]) ? interval(a[2], b[2]) : interval(b[2], a[2]);
+
+        pad_to_min();
     }
 
     aabb(const aabb& box0, const aabb& box1) {//creates a box connecting the two inputs
         x = interval(box0.x, box1.x);
         y = interval(box0.y, box1.y);
         z = interval(box0.z, box1.z);
+        pad_to_min();
     }
 
     const interval& axis_interval(int n) const {//1 -> y, 2 -> z, else -> x
@@ -63,8 +69,15 @@ class aabb {//axis aligned bounding box
         else
             return y.size() > z.size() ? 1 : 2;
     }
+    
 
-    static const aabb empty, universe;
+private:
+    void pad_to_min() {//increases bounds to a min if necessary
+        double min = 0.0001;
+        if (x.size() < min) x = x.expand(min);
+        if (y.size() < min) y = y.expand(min);
+        if (z.size() < min) z = z.expand(min);
+    }
 };
 
 const aabb aabb::empty    = aabb(interval::empty,    interval::empty,    interval::empty);
