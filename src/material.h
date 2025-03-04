@@ -11,9 +11,14 @@ class material {
   public:
     virtual ~material() = default;
 
+	// get colour emitted using UV of texture
+	virtual colour emitted(double u, double v, const point3& pos) const {
+        return colour(0,0,0);
+    }
+
     virtual bool scatter(const ray& r_in,
                          const hit_record& rec,
-                         color& attenuation,
+                         colour& attenuation,
                          ray& scattered) const {
         return false;
     }
@@ -21,10 +26,10 @@ class material {
 
 class lambertian : public material {
   public:
-    lambertian(const color& albedo) : m_texture(make_shared<solid_color>(albedo)) {}
+    lambertian(const colour& albedo) : m_texture(make_shared<solid_color>(albedo)) {}
     lambertian(shared_ptr<texture> tex) : m_texture(tex) {}
 
-    bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered)
+    bool scatter(const ray& r_in, const hit_record& rec, colour& attenuation, ray& scattered)
     const override {
         auto scatter_direction = rec.normal + random_unit_vector();
 
@@ -41,9 +46,9 @@ class lambertian : public material {
 };
 class metal : public material {
   public:
-    metal(const color& albedo, double fuzz) : m_albedo(albedo), m_fuzz(fuzz) {}
+    metal(const colour& albedo, double fuzz) : m_albedo(albedo), m_fuzz(fuzz) {}
 
-    bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered)
+    bool scatter(const ray& r_in, const hit_record& rec, colour& attenuation, ray& scattered)
     const override {
         vec3 reflected = reflect(r_in.direction(), rec.normal);//perfect reflection
         reflected = unit_vector(reflected) + (m_fuzz * random_unit_vector());
@@ -54,7 +59,7 @@ class metal : public material {
     }
 
   private:
-    color m_albedo;
+    colour m_albedo;
     double m_fuzz;//fuzz varies the reflected ray angle randomly, creating less sharp reflections
 };
 
@@ -62,9 +67,9 @@ class dielectric : public material {
   public:
     dielectric(double refraction_index) : m_refraction_index(refraction_index) {}
 
-    bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered)
+    bool scatter(const ray& r_in, const hit_record& rec, colour& attenuation, ray& scattered)
     const override {
-        attenuation = color(1.0, 1.0, 1.0);
+        attenuation = colour(1.0, 1.0, 1.0);
         double ri = rec.front_face ? (1.0/m_refraction_index) : m_refraction_index;
 
         vec3 unit_direction = unit_vector(r_in.direction());
@@ -92,4 +97,21 @@ class dielectric : public material {
         return r0 + (1-r0)*pow((1 - cosine),5);
     }
 };
+
+class diffuse_light : public material {
+  public:
+    // constructor to emit light using a texture
+    diffuse_light(shared_ptr<texture> tex) : texture(tex){}
+
+    // constructor to emit light with a single colour
+    diffuse_light(const colour& emit_color) : texture(make_shared<solid_color>(emit_color)) {}
+
+    colour emitted(double u, double v, const point3& pos) const override {
+        return texture->value(u,v,pos);
+    }
+
+  private:
+    shared_ptr<texture> texture;
+};
+
 #endif

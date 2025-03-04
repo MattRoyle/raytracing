@@ -3,7 +3,7 @@
 #include "interval.h"
 #include "vec3.h"
 
-using color = vec3;//alias for vector3
+using colour = vec3;//alias for vector3
 
 inline double linear_to_gamma(double linear_component)
 {
@@ -13,7 +13,7 @@ inline double linear_to_gamma(double linear_component)
     return 0;
 }
 
-void write_color(std::ostream& out, const color& pixel_color) {
+void write_color(std::ostream& out, const colour& pixel_color) {
     auto r = pixel_color.x();
     auto g = pixel_color.y();
     auto b = pixel_color.z();
@@ -27,7 +27,7 @@ void write_color(std::ostream& out, const color& pixel_color) {
     int gbyte = int(256 * intensity.clamp(g));
     int bbyte = int(256 * intensity.clamp(b));
 
-    // Write out the pixel color components.
+    // Write out the pixel colour components.
     out << rbyte << ' ' << gbyte << ' ' << bbyte << '\n';
 }
 

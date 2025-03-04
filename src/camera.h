@@ -12,7 +12,7 @@ class camera {
     int image_width = 400;
     int samples_per_pixel = 10;//samples taken around each pixel for anti-aliasing
     int    max_depth         = 10;   // Maximum number of ray bounces into scene
-
+    colour background_colour;     // Scene background colour
     double fov=90;
     point3 cam_center = point3(0,0,0);   // Point camera is looking from
     point3 look_point   = point3(0,0,-1);  // Point camera is looking at
@@ -27,7 +27,7 @@ class camera {
         for (int j = 0; j < image_height; j++) {
             std::clog << "\rScanlines remaining: " << (image_height - j) << ' ' << std::flush;//writes to the console
             for (int i = 0; i < image_width; i++) {
-                color pixel_color(0,0,0);
+                colour pixel_color(0,0,0);
                 for (int sample = 0; sample < samples_per_pixel; sample++) {
                     ray r = get_ray(i, j);
                     pixel_color += ray_color(r, max_depth, world);
@@ -111,23 +111,29 @@ class camera {
         auto p = random_in_unit_disk();
         return cam_center + (p[0] * defocus_disk_u) + (p[1] * defocus_disk_v);
     }
-    color ray_color(const ray& r, int depth, const hittable& world) {
+    colour ray_color(const ray& r, int depth, const hittable& world) {
         if(depth<=0)
-            return color(0,0,0);//exceeded max bounce limit
+            return colour(0,0,0);//exceeded max bounce limit so no more light is added
+
         hit_record record;
-        if (world.hit(r, interval(0.001, INF), record)) {//minimum accounts for float point inaccuracies causing bounces to be started offset from intersection
-            ray scattered;
-            color attenuation;
-            if (record.mat->scatter(r, record, attenuation, scattered))//if the ray doesn't get absorbed
-                return attenuation * ray_color(scattered, depth-1, world);//recursive call
-            
-            return color(0,0,0);//ray was absorbed so return black
-        }
+
+        // If the ray doesn't hit anything return the background colour
+        if(!world.hit(r, interval(0.001, INF), record))
+            return background_colour;
+
+        ray scattered;
+        colour attenuation;
+        colour emitted_color = record.mat->emitted(record.u, record.v, record.p);
+        if (record.mat->scatter(r, record, attenuation, scattered))//if the ray doesn't get absorbed
+            return emitted_color + attenuation * ray_color(scattered, depth-1, world);//recursive call
+        
+        return emitted_color;//ray was absorbed only return the emission colour
+        
         // Ray hits nothing
         vec3 ray_udirection = unit_vector(r.direction());
         auto at = 0.5*(ray_udirection.y()+1.0);
         //linear-interpolate the colour by "at": startValue = (1.0,1.0,1.0), endValue = (0.5,0.7,1.0) green?
-        return (1.0-at)*color(1.0, 1.0, 1.0) + at*color(0.5, 0.7, 1.0);
+        return (1.0-at)*colour(1.0, 1.0, 1.0) + at*colour(0.5, 0.7, 1.0);
     }
 };
 
