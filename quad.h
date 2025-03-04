@@ -41,6 +41,7 @@ class quad : public hittable {
         if (!ray_t.contains(t))
             return false;
 
+        // Determine if the hitpoint is within the planar shape using plana coords
         auto intersection = r.at(t);//in world coords
         vec3 planar_hitpt_vector = intersection - Q;//truncate to plane cords
         //divide plane into regions alpha and beta s.t Q -> alpha_0, beta_0, v -> alpha_0, beta_1, u -> alpha_1, beta_0
