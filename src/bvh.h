@@ -11,13 +11,12 @@
 
 class bvh_node : public hittable {
   public:
+    // Build the bounding volume heirarchy using the hittable_objects list
     bvh_node(hittable_list list) : bvh_node(list.hittable_objects, 0, list.hittable_objects.size()) {
         // modifyable list variable has constructor lifetime
     }
-
+    // Build the bounding volume heirarchy of the fitting the span of the source objects
     bvh_node(std::vector<shared_ptr<hittable>>& objects, size_t start, size_t end) {
-        
-        // Build the bounding box of the span of source objects.
         bbox = aabb::empty;
         for (size_t object_index=start; object_index < end; object_index++)
             bbox = aabb(bbox, objects[object_index]->bounding_box());
@@ -29,17 +28,19 @@ class bvh_node : public hittable {
 
         size_t object_span = end - start;//length of the list
 
-        if (object_span == 1) {
-            left = right = objects[start];//1 element in the list
-        } else if (object_span == 2) {
-            left = objects[start];
-            right = objects[start+1];//two elements, doesn't matter if sorted
+        if (object_span == 1) {//1 object in the list, 
+            childA = objects[start];// set childA to a leaf node
+            childB = nullptr;// indicate no other child
+        } else if (object_span == 2) {//two objects, doesn't matter if sorted
+            childA = objects[start];//set both children to leaf nodes
+            childB = objects[start+1];
         } else {
-            std::sort(objects.begin() + start, objects.begin() + end, comparator);//sort the list
+            std::sort(objects.begin() + start, objects.begin() + end, comparator);//sort the objects along the dividing axis
 
-            auto mid = start + object_span/2;//split into two lists
-            left = make_shared<bvh_node>(objects, start, mid);
-            right = make_shared<bvh_node>(objects, mid, end);//sub trees
+            auto mid = start + object_span/2;//calculate the centre of the sorted list
+            //create child nodes for the first and second halves of the sorted objects
+            childA = make_shared<bvh_node>(objects, start, mid);
+            childB = make_shared<bvh_node>(objects, mid, end);
         }
     }
 
@@ -47,18 +48,21 @@ class bvh_node : public hittable {
         if (!bbox.hit(r, ray_t))//does it intersect with the bounding box
             return false;
 
-        //checks the children
-        bool hit_left = left->hit(r, ray_t, rec);
-        bool hit_right = right->hit(r, interval(ray_t.min, hit_left ? rec.t : ray_t.max), rec);
+        bool hit_childA = childA->hit(r, ray_t, rec);
 
-        return hit_left || hit_right;
+        if(childB==nullptr)
+            return hit_childA;//doesn't check childB when only one child node
+
+        bool hit_childB = childB->hit(r, interval(ray_t.min, hit_childA ? rec.t : ray_t.max), rec);
+
+        return hit_childA || hit_childB;
     }
-
+    // return the bounding box of the node
     aabb bounding_box() const override { return bbox; }
 
   private:
-    shared_ptr<hittable> left;
-    shared_ptr<hittable> right;
+    shared_ptr<hittable> childA;
+    shared_ptr<hittable> childB;
     aabb bbox;
 
     static bool box_compare(const shared_ptr<hittable> a, const shared_ptr<hittable> b, int axis_index) {//takes the axis to compare the bounding boxes with

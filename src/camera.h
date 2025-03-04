@@ -119,12 +119,14 @@ class camera {
             ray scattered;
             color attenuation;
             if (record.mat->scatter(r, record, attenuation, scattered))//if the ray doesn't get absorbed
-                return attenuation * ray_color(scattered, depth-1, world);
+                return attenuation * ray_color(scattered, depth-1, world);//recursive call
             
-            return color(0,0,0);
+            return color(0,0,0);//ray was absorbed so return black
         }
-        vec3 unit_dir = unit_vector(r.direction());
-        auto at = 0.5*(unit_dir.y()+1.0);
+        // Ray hits nothing
+        vec3 ray_udirection = unit_vector(r.direction());
+        auto at = 0.5*(ray_udirection.y()+1.0);
+        //linear-interpolate the colour by "at": startValue = (1.0,1.0,1.0), endValue = (0.5,0.7,1.0) green?
         return (1.0-at)*color(1.0, 1.0, 1.0) + at*color(0.5, 0.7, 1.0);
     }
 };

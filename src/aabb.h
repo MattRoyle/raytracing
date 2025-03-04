@@ -3,18 +3,22 @@
 
 #include "headers.h"
 
-class aabb {//axis aligned bounding box
+//axis aligned bounding box
+class aabb {
   public:
     interval x, y, z;//bounding intervals in each axis
     static const aabb empty, universe;
 
-    aabb() {} // default AABB is empty, since intervals are empty by default.
+    // default AABB is empty, since intervals are empty by default.
+    aabb() {} 
 
+    //construct the bounding box with three intervals (the x, y, and z axis distances)
     aabb(const interval& x, const interval& y, const interval& z)
       : x(x), y(y), z(z) {
         pad_to_min();
       }
 
+    //construct the bounding box with two points (the longest diagonal a -> b)
     aabb(const point3& a, const point3& b) {
         // a and b as extrema for the bounding box, particular minimum/maximum for every axis
         x = (a[0] <= b[0]) ? interval(a[0], b[0]) : interval(b[0], a[0]);
@@ -24,6 +28,7 @@ class aabb {//axis aligned bounding box
         pad_to_min();
     }
 
+    //constructs the bounding box by combining two bounding boxes
     aabb(const aabb& box0, const aabb& box1) {//creates a box connecting the two inputs
         x = interval(box0.x, box1.x);
         y = interval(box0.y, box1.y);
@@ -37,6 +42,7 @@ class aabb {//axis aligned bounding box
         return x;
     }
 
+    //checks if a ray hit the bounding box
     bool hit(const ray& r, interval ray_t) const {
         const point3& ray_orig = r.origin();
         const vec3&   ray_dir  = r.direction();
@@ -61,9 +67,8 @@ class aabb {//axis aligned bounding box
         }
         return true;
     }
+    // Returns the index of the longest axis of the bounding box.
     int longest_axis() const {
-        // Returns the index of the longest axis of the bounding box.
-
         if (x.size() > y.size())
             return x.size() > z.size() ? 0 : 2;
         else
@@ -72,7 +77,8 @@ class aabb {//axis aligned bounding box
     
 
 private:
-    void pad_to_min() {//increases bounds to a min if necessary
+    // increases bounds to a min if necessary
+    void pad_to_min() {
         double min = 0.0001;
         if (x.size() < min) x = x.expand(min);
         if (y.size() < min) y = y.expand(min);
