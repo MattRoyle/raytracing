@@ -28,9 +28,11 @@ class camera {
             std::clog << "\rScanlines remaining: " << (image_height - j) << ' ' << std::flush;//writes to the console
             for (int i = 0; i < image_width; i++) {
                 colour pixel_color(0,0,0);
-                for (int sample = 0; sample < samples_per_pixel; sample++) {
-                    ray r = get_ray(i, j);
-                    pixel_color += ray_color(r, max_depth, world);
+                for (int s_j = 0; s_j < sqrt_spp; s_j++) {
+                    for (int s_i = 0; s_i < sqrt_spp; s_i++) {
+                        ray r = get_ray(i, j, s_i, s_j);
+                        pixel_color += ray_colour(r, max_depth, world);
+                    }
                 }
                 write_color(std::cout, pixel_samples_scale * pixel_color);
             }
@@ -41,6 +43,8 @@ class camera {
   private:
     int    image_height;
     double pixel_samples_scale;  // Color scale factor for a sum of pixel samples
+    int    sqrt_spp;             // Square root of number of samples per pixel
+    double recip_sqrt_spp;       // 1 / sqrt_spp
     point3 camera_center;
     point3 pixel_origin; // Location of pixel 0, 0
     vec3   pixel_delta_u; //horizontal pixel offset
@@ -53,7 +57,10 @@ class camera {
        
         image_height = int(image_width / aspect_ratio);
         image_height = (image_height < 1) ? 1 : image_height; // calculate the image height, and ensure that it's at least 1.
-        pixel_samples_scale = 1.0 / samples_per_pixel;
+        
+        sqrt_spp = int(std::sqrt(samples_per_pixel));
+        pixel_samples_scale = 1.0 / (sqrt_spp * sqrt_spp);
+        recip_sqrt_spp = 1.0 / sqrt_spp;
 
         camera_center =cam_center;
         
@@ -85,11 +92,11 @@ class camera {
         defocus_disk_v = v * defocus_radius;
     }
 
-     ray get_ray(int i, int j) const {
+    ray get_ray(int i, int j, int s_i, int s_j) const {
         // Construct a camera ray originating from the focus disk and directed at randomly sampled
-        // point around the pixel location i, j.
+        // sampled point around the pixel location i, j for stratified sample square s_i, s_j.
 
-        auto offset = sample_square();
+        auto offset = sample_square_stratified(s_i, s_j);
         auto pixel_sample = pixel_origin
                           + ((i + offset.x()) * pixel_delta_u)
                           + ((j + offset.y()) * pixel_delta_v);
@@ -102,6 +109,16 @@ class camera {
         return ray(ray_origin, ray_direction, ray_time);
     }
 
+    vec3 sample_square_stratified(int s_i, int s_j) const {
+        // Returns the vector to a random point in the square sub-pixel specified by grid
+        // indices s_i and s_j, for an idealized unit square pixel [-.5,-.5] to [+.5,+.5].
+
+        auto px = ((s_i + random_double()) * recip_sqrt_spp) - 0.5;
+        auto py = ((s_j + random_double()) * recip_sqrt_spp) - 0.5;
+
+        return vec3(px, py, 0);
+    }
+
     vec3 sample_square() const {
         // Returns the vector to a random point in the [-.5,-.5]-[+.5,+.5] unit square.
         return vec3(random_double() - 0.5, random_double() - 0.5, 0);
@@ -111,7 +128,7 @@ class camera {
         auto p = random_in_unit_disk();
         return cam_center + (p[0] * defocus_disk_u) + (p[1] * defocus_disk_v);
     }
-    colour ray_color(const ray& r, int depth, const hittable& world) {
+    colour ray_colour(const ray& r, int depth, const hittable& world) {
         if(depth<=0)
             return colour(0,0,0);//exceeded max bounce limit so no more light is added
 
@@ -125,15 +142,9 @@ class camera {
         colour attenuation;
         colour emitted_color = record.mat->emitted(record.u, record.v, record.p);
         if (record.mat->scatter(r, record, attenuation, scattered))//if the ray doesn't get absorbed
-            return emitted_color + attenuation * ray_color(scattered, depth-1, world);//recursive call
+            return emitted_color + attenuation * ray_colour(scattered, depth-1, world);//recursive call
         
         return emitted_color;//ray was absorbed only return the emission colour
-        
-        // Ray hits nothing
-        vec3 ray_udirection = unit_vector(r.direction());
-        auto at = 0.5*(ray_udirection.y()+1.0);
-        //linear-interpolate the colour by "at": startValue = (1.0,1.0,1.0), endValue = (0.5,0.7,1.0) green?
-        return (1.0-at)*colour(1.0, 1.0, 1.0) + at*colour(0.5, 0.7, 1.0);
     }
 };
 
