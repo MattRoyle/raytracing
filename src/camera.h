@@ -141,10 +141,16 @@ class camera {
         ray scattered;
         colour attenuation;
         colour emitted_color = record.mat->emitted(record.u, record.v, record.p);
-        if (record.mat->scatter(r, record, attenuation, scattered))//if the ray doesn't get absorbed
-            return emitted_color + attenuation * ray_colour(scattered, depth-1, world);//recursive call
+        if (!record.mat->scatter(r, record, attenuation, scattered))//if the ray doesn't get absorbed
+            return emitted_color;//ray was absorbed only return the emission colour
         
-        return emitted_color;//ray was absorbed only return the emission colour
+        
+        double scattering_pdf = record.mat->scattering_pdf(r, record, scattered);
+        double pdf_value = scattering_pdf;
+
+        colour colour_from_scatter = (attenuation * scattering_pdf * ray_colour(scattered, depth - 1, world)) / pdf_value; //pdf integration formula
+
+        return emitted_color + colour_from_scatter;
     }
 };
 
