@@ -140,13 +140,29 @@ class camera {
 
         ray scattered;
         colour attenuation;
-        colour emitted_color = record.mat->emitted(record.u, record.v, record.p);
-        if (!record.mat->scatter(r, record, attenuation, scattered))//if the ray doesn't get absorbed
+        double pdf_value;
+        colour emitted_color = record.mat->emitted(r, record, record.u, record.v, record.p);
+        
+        if (!record.mat->scatter(r, record, attenuation, scattered, pdf_value))//if the ray doesn't get absorbed
             return emitted_color;//ray was absorbed only return the emission colour
         
-        
+        auto on_light = point3(random_double(213,343), 554, random_double(227,332));//random point on the light
+        auto to_light = on_light - record.p;//vector from the hit point to the light
+        auto distance_squared = to_light.length_squared();
+        to_light = unit_vector(to_light);
+
+        if (dot(to_light, record.normal) < 0)//light is behind the normal/surface
+            return emitted_color;
+
+        double light_area = (343-213)*(332-227); 
+        auto light_cosine = fabs(to_light.y());
+        if (light_cosine < 0.000001)//the light is close to perpindicular to the surface?
+            return emitted_color;
+
+        pdf_value = distance_squared / (light_cosine * light_area);//find the pdf of the light
+        scattered = ray(record.p, to_light, r.time());
+
         double scattering_pdf = record.mat->scattering_pdf(r, record, scattered);
-        double pdf_value = scattering_pdf;
 
         colour colour_from_scatter = (attenuation * scattering_pdf * ray_colour(scattered, depth - 1, world)) / pdf_value; //pdf integration formula
 

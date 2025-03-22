@@ -2,7 +2,7 @@
 #define MATERIAL_H
 
 #include "headers.h"
-
+#include "onb.h"
 #include "texture.h"
 
 class hit_record;
@@ -12,17 +12,17 @@ class material {
     virtual ~material() = default;
 
 	// get colour emitted using UV of texture
-	virtual colour emitted(double u, double v, const point3& pos) const {
+	virtual colour emitted(const ray& r_in, const hit_record& rec,double u, double v, const point3& pos) const {
         return colour(0,0,0);
     }
 
     virtual bool scatter(const ray& r_in,
                          const hit_record& rec,
                          colour& attenuation,
-                         ray& scattered) const {
+                         ray& scattered, double& pdf) const {
         return false;
     }
-    virtual double scattering_pdf(const ray& r_in, const hit_record& rec, ray& scattered) const {
+    virtual double scattering_pdf(const ray& r_in, const hit_record& rec, const ray& scattered) const {
       return 0;
     }
 };
@@ -32,18 +32,17 @@ class lambertian : public material {
     lambertian(const colour& albedo) : m_texture(make_shared<solid_color>(albedo)) {}
     lambertian(shared_ptr<texture> tex) : m_texture(tex) {}
 
-    bool scatter(const ray& r_in, const hit_record& rec, colour& attenuation, ray& scattered)
+    bool scatter(const ray& r_in, const hit_record& rec, colour& attenuation, ray& scattered, double& pdf)
     const override {
-        auto scatter_direction = rec.normal + random_unit_vector();
+		onb uvw(rec.normal); // set up orthonormal basis to translate random vector from relative to the z axis to relative to normal
+        auto scatter_direction = uvw.transform(random_cosine_direction());//use the cosine random vector then translate to be relative to the normal
 
-        if (scatter_direction.near_zero())
-            scatter_direction = rec.normal;//prevents case where the random is close to the inverse of the normal 
-
-        scattered = ray(rec.p, scatter_direction, r_in.time());
+        scattered = ray(rec.p, unit_vector(scatter_direction), r_in.time());
         attenuation = m_texture->value(rec.u, rec.v, rec.p);
+		pdf = dot(uvw.w(), scattered.direction()) / PI; //create pdf
         return true;
     }
-    double scattering_pdf(const ray& r_in, const hit_record& rec, ray& scattered) const override{
+    double scattering_pdf(const ray& r_in, const hit_record& rec, const ray& scattered) const override{
       	auto cos_theta = dot(rec.normal, unit_vector(scattered.direction()));
 		return cos_theta < 0 ? 0 : cos_theta / PI;
     }
@@ -54,7 +53,7 @@ class metal : public material {
   public:
     metal(const colour& albedo, double fuzz) : m_albedo(albedo), m_fuzz(fuzz) {}
 
-    bool scatter(const ray& r_in, const hit_record& rec, colour& attenuation, ray& scattered)
+    bool scatter(const ray& r_in, const hit_record& rec, colour& attenuation, ray& scattered, double& pdf)
     const override {
         vec3 reflected = reflect(r_in.direction(), rec.normal);//perfect reflection
         reflected = unit_vector(reflected) + (m_fuzz * random_unit_vector());
@@ -73,7 +72,7 @@ class dielectric : public material {
   public:
     dielectric(double refraction_index) : m_refraction_index(refraction_index) {}
 
-    bool scatter(const ray& r_in, const hit_record& rec, colour& attenuation, ray& scattered)
+    bool scatter(const ray& r_in, const hit_record& rec, colour& attenuation, ray& scattered, double& pdf)
     const override {
         attenuation = colour(1.0, 1.0, 1.0);
         double ri = rec.front_face ? (1.0/m_refraction_index) : m_refraction_index;
@@ -112,7 +111,11 @@ class diffuse_light : public material {
     // constructor to emit light with a single colour
     diffuse_light(const colour& emit_color) : texture(make_shared<solid_color>(emit_color)) {}
 
-    colour emitted(double u, double v, const point3& pos) const override {
+    colour emitted(const ray& r_in, const hit_record& rec, double u, double v, const point3& pos)
+	const override {
+		if(!rec.front_face){
+			return colour(0,0,0);//emission only on surface faces
+		}
         return texture->value(u,v,pos);
     }
 
@@ -125,12 +128,16 @@ class isotropic : public material {
 	isotropic(const colour& albedo) : tex(make_shared<solid_color>(albedo)) {}
 	isotropic(shared_ptr<texture> tex) : tex(tex) {}
   
-	bool scatter(const ray& r_in, const hit_record& rec, colour& attenuation, ray& scattered) const override {
+	bool scatter(const ray& r_in, const hit_record& rec, colour& attenuation, ray& scattered, double& pdf) const override {
 		scattered = ray(rec.p, random_unit_vector(), r_in.time());
 		attenuation = tex->value(rec.u, rec.v, rec.p);
+		pdf = 1/(4*PI);
 		return true;
 	}
-  
+	
+	double scattering_pdf(const ray& r_in, const hit_record& rec, const ray& scattered) const override{
+		return 1 / (4 * PI);
+	}
   private:
 	shared_ptr<texture> tex;
 };
