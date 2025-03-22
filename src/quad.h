@@ -16,6 +16,8 @@ class quad : public hittable {
 
         w = n / dot(n,n);
 
+        area = n.length();//non-normalised normal so the length is u * v
+
         set_bounding_box();
     }
 
@@ -72,6 +74,22 @@ class quad : public hittable {
         return true;
     }
 
+    double pdf_value(const point3& origin, const vec3& direction) const override {
+        hit_record rec;
+        if (!this->hit(ray(origin, direction), interval(0.001, INFINITY), rec))
+            return 0;// the ray cannot hit the quad
+
+        auto distance_squared = rec.t * rec.t * direction.length_squared();
+        auto cosine = std::fabs(dot(direction, rec.normal) / direction.length());
+
+        return distance_squared / (cosine * area);//chapter 9
+    }
+
+    vec3 random(const point3& origin) const override {
+        auto p = Q + (random_double() * u) + (random_double() * v);
+        return p - origin;
+    }
+
   protected:
     point3 Q;//starting pos
     vec3 u, v;//u is width, v is height
@@ -80,6 +98,7 @@ class quad : public hittable {
     aabb bbox;
     vec3 normal;
     double D;//constant for the plane equation Ax + Bx + Cx = D
+    double area;
 };
 
 

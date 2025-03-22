@@ -4,6 +4,7 @@
 #include "headers.h"
 
 #include "hittable.h"
+#include "pdf.h"
 #include "material.h"
 
 class camera {
@@ -21,7 +22,7 @@ class camera {
     double defocus_angle = 0;  // Variation angle of rays through each pixel
     double focus_dist = 10;    // Distance from camera lookfrom point to plane of perfect focus
 
-    void render(const hittable& world) {
+    void render(const hittable& world, const hittable& lights) {
         initialize();
         std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";//formatting the .ppm file
         for (int j = 0; j < image_height; j++) {
@@ -31,7 +32,7 @@ class camera {
                 for (int s_j = 0; s_j < sqrt_spp; s_j++) {
                     for (int s_i = 0; s_i < sqrt_spp; s_i++) {
                         ray r = get_ray(i, j, s_i, s_j);
-                        pixel_color += ray_colour(r, max_depth, world);
+                        pixel_color += ray_colour(r, max_depth, world, lights);
                     }
                 }
                 write_color(std::cout, pixel_samples_scale * pixel_color);
@@ -128,7 +129,7 @@ class camera {
         auto p = random_in_unit_disk();
         return cam_center + (p[0] * defocus_disk_u) + (p[1] * defocus_disk_v);
     }
-    colour ray_colour(const ray& r, int depth, const hittable& world) {
+    colour ray_colour(const ray& r, int depth, const hittable& world, const hittable& lights) {
         if(depth<=0)
             return colour(0,0,0);//exceeded max bounce limit so no more light is added
 
@@ -146,25 +147,17 @@ class camera {
         if (!record.mat->scatter(r, record, attenuation, scattered, pdf_value))//if the ray doesn't get absorbed
             return emitted_color;//ray was absorbed only return the emission colour
         
-        auto on_light = point3(random_double(213,343), 554, random_double(227,332));//random point on the light
-        auto to_light = on_light - record.p;//vector from the hit point to the light
-        auto distance_squared = to_light.length_squared();
-        to_light = unit_vector(to_light);
+        auto pdf0 = make_shared<hittable_pdf>(lights, record.p);
+        auto pdf1 = make_shared<cosine_pdf>(record.normal);
+        mixture_pdf mixed_pdf(pdf0, pdf1);
 
-        if (dot(to_light, record.normal) < 0)//light is behind the normal/surface
-            return emitted_color;
-
-        double light_area = (343-213)*(332-227); 
-        auto light_cosine = fabs(to_light.y());
-        if (light_cosine < 0.000001)//the light is close to perpindicular to the surface?
-            return emitted_color;
-
-        pdf_value = distance_squared / (light_cosine * light_area);//find the pdf of the light
-        scattered = ray(record.p, to_light, r.time());
-
+        scattered = ray(record.p, mixed_pdf.generate(), r.time());
+        pdf_value = mixed_pdf.value(scattered.direction());
+        
         double scattering_pdf = record.mat->scattering_pdf(r, record, scattered);
 
-        colour colour_from_scatter = (attenuation * scattering_pdf * ray_colour(scattered, depth - 1, world)) / pdf_value; //pdf integration formula
+        colour sample_colour = ray_colour(scattered, depth-1, world, lights);
+        colour colour_from_scatter = (attenuation * scattering_pdf * sample_colour) / pdf_value; //pdf integration formula
 
         return emitted_color + colour_from_scatter;
     }

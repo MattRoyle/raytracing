@@ -21,7 +21,7 @@ class hit_record {//data for a hit, to simplify function parameters
     }
 };
 
-class hittable {// abstract class for all "objects" that rays can hit
+class hittable {
   public:
     virtual ~hittable() = default;
 
@@ -29,6 +29,16 @@ class hittable {// abstract class for all "objects" that rays can hit
     virtual bool hit(const ray& r, interval ray_t, hit_record& rec) const = 0;// ray interval restricts t to between a min and max
     //get the bounding box for this object
     virtual aabb bounding_box() const = 0;
+
+	//get the pdf value from a given direction
+	virtual double pdf_value(const point3& origin, const vec3& direction) const {
+        return 0.0;
+    }
+
+	//get a direction vector from a random point on the surface from the origin
+    virtual vec3 random(const point3& origin) const {
+        return vec3(1,0,0);
+    }
 };
 
 class translate : public hittable{

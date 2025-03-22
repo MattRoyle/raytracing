@@ -7,7 +7,7 @@ public:
     //sets up a orthonormal basis with the normal as the z
     onb(const vec3& n){
         axis[2] = unit_vector(n); //normalise the normal vector
-        vec3 a = (fabs(axis[2].x())> 0.9) ? vec3(0, 1, 0) : vec3(1, 0, 0);
+        vec3 a = (fabs(axis[2].x()) > 0.9) ? vec3(0, 1, 0) : vec3(1, 0, 0);
         axis[1] = unit_vector(cross(axis[2], a)); // s vector
         axis[0] = cross(axis[2], axis[1]); //t vector can be found as perpendicular to the first two axes
     }

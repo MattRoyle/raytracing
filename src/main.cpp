@@ -10,7 +10,7 @@
 #include "sphere.h"
 #include "texture.h"
 #include <chrono>
-void quads() {
+/*void quads() {
     hittable_list world;
 
     // Materials
@@ -210,6 +210,7 @@ void simple_light() {
 
     cam.render(world);
 }
+*/
 void cornell_box() {
     hittable_list world;
 
@@ -218,18 +219,24 @@ void cornell_box() {
     auto green = make_shared<lambertian>(colour(.12, .45, .15));
     auto light = make_shared<diffuse_light>(colour(15, 15, 15));
 
-    world.add(make_shared<quad>(point3(555,0,0), vec3(0,555,0), vec3(0,0,555), green));
-    world.add(make_shared<quad>(point3(0,0,0), vec3(0,555,0), vec3(0,0,555), red));
-    world.add(make_shared<quad>(point3(343, 554, 332), vec3(-130,0,0), vec3(0,0,-105), light));
-    world.add(make_shared<quad>(point3(0,0,0), vec3(555,0,0), vec3(0,0,555), white));
-    world.add(make_shared<quad>(point3(555,555,555), vec3(-555,0,0), vec3(0,0,-555), white));
-    world.add(make_shared<quad>(point3(0,0,555), vec3(555,0,0), vec3(0,555,0), white));
+    // Cornell box sides
+    world.add(make_shared<quad>(point3(555,0,0), vec3(0,0,555), vec3(0,555,0), green));
+    world.add(make_shared<quad>(point3(0,0,555), vec3(0,0,-555), vec3(0,555,0), red));
+    world.add(make_shared<quad>(point3(0,555,0), vec3(555,0,0), vec3(0,0,555), white));
+    world.add(make_shared<quad>(point3(0,0,555), vec3(555,0,0), vec3(0,0,-555), white));
+    world.add(make_shared<quad>(point3(555,0,555), vec3(-555,0,0), vec3(0,555,0), white));
 
+    // Light
+    auto empty_material = shared_ptr<material>();
+    quad lights(point3(343,554,332), vec3(-130,0,0), vec3(0,0,-105), empty_material);
+
+    // Box 1
     shared_ptr<hittable> box1 = box(point3(0,0,0), point3(165,330,165), white);
     box1 = make_shared<rotate_y>(box1, 15);
     box1 = make_shared<translate>(box1, vec3(265,0,295));
     world.add(box1);
 
+    // Box 2
     shared_ptr<hittable> box2 = box(point3(0,0,0), point3(165,165,165), white);
     box2 = make_shared<rotate_y>(box2, -18);
     box2 = make_shared<translate>(box2, vec3(130,0,65));
@@ -243,64 +250,21 @@ void cornell_box() {
     cam.max_depth         = 50;
     cam.background_colour = colour(0,0,0);
 
-    cam.fov        = 40;
-    cam.cam_center = point3(278, 278, -800);
-    cam.look_point = point3(278, 278, 0);
-    cam.vup        = vec3(0,1,0);
-
-    cam.defocus_angle = 0;
-
-    cam.render(world);
-}
-
-void cornell_smoke() {
-    hittable_list world;
-
-    auto red   = make_shared<lambertian>(colour(.65, .05, .05));
-    auto white = make_shared<lambertian>(colour(.73, .73, .73));
-    auto green = make_shared<lambertian>(colour(.12, .45, .15));
-    auto light = make_shared<diffuse_light>(colour(7, 7, 7));
-
-    world.add(make_shared<quad>(point3(555,0,0), vec3(0,555,0), vec3(0,0,555), green));
-    world.add(make_shared<quad>(point3(0,0,0), vec3(0,555,0), vec3(0,0,555), red));
-    world.add(make_shared<quad>(point3(113,554,127), vec3(330,0,0), vec3(0,0,305), light));
-    world.add(make_shared<quad>(point3(0,555,0), vec3(555,0,0), vec3(0,0,555), white));
-    world.add(make_shared<quad>(point3(0,0,0), vec3(555,0,0), vec3(0,0,555), white));
-    world.add(make_shared<quad>(point3(0,0,555), vec3(555,0,0), vec3(0,555,0), white));
-
-    shared_ptr<hittable> box1 = box(point3(0,0,0), point3(165,330,165), white);
-    box1 = make_shared<rotate_y>(box1, 15);
-    box1 = make_shared<translate>(box1, vec3(265,0,295));
-
-    shared_ptr<hittable> box2 = box(point3(0,0,0), point3(165,165,165), white);
-    box2 = make_shared<rotate_y>(box2, -18);
-    box2 = make_shared<translate>(box2, vec3(130,0,65));
-
-    world.add(make_shared<constant_medium>(box1, 0.01, colour(0,0,0)));
-    world.add(make_shared<constant_medium>(box2, 0.01, colour(1,1,1)));
-
-    camera cam;
-
-    cam.aspect_ratio      = 1.0;
-    cam.image_width       = 600;
-    cam.samples_per_pixel = 200;
-    cam.max_depth         = 50;
-    cam.background_colour        = colour(0,0,0);
-
     cam.fov     = 40;
     cam.cam_center = point3(278, 278, -800);
     cam.look_point   = point3(278, 278, 0);
-    cam.vup      = vec3(0,1,0);
+    cam.vup      = vec3(0, 1, 0);
 
     cam.defocus_angle = 0;
 
-    cam.render(world);
+    cam.render(world, lights);
 }
+
 
 #include <iomanip>
 int main() {
     auto start = std::chrono::high_resolution_clock::now();
-    switch (7) {
+    /*switch (7) {
         case 1:  bouncing_spheres();  break;
         case 2:  checkered_spheres(); break;
         case 3:  earth();             break;
@@ -309,7 +273,8 @@ int main() {
         case 6:  simple_light();      break;
         case 7:  cornell_box();       break;
         case 8:  cornell_smoke();     break;
-    }
+    }*/
+    cornell_box();
     auto stop = std::chrono::high_resolution_clock::now();
     float duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count()/1000000.f;
     
