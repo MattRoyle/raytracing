@@ -2,18 +2,18 @@
 #define SPHERE_H
 
 #include "hittable.h"
-
+#include "onb.h"
 class sphere : public hittable {
   public:
     //stationary sphere
-    sphere(const point3& center, double radius, shared_ptr<material> mat) : m_center(center), m_radius(fmax(0,radius)), m_mat(mat) {
+    sphere(const point3& center, double radius, shared_ptr<material> mat) 
+    : m_center(center), m_radius(fmax(0,radius)), m_mat(mat) {
         auto radius_vec = vec3(m_radius, m_radius, m_radius);
         bbox = aabb(m_center - radius_vec, m_center + radius_vec);
     }
-     //moving Sphere
-    sphere(const point3& center1, const point3& center2, double radius,
-           shared_ptr<material> mat)
-      : m_center(center1), m_radius(fmax(0,radius)), m_mat(mat), is_moving(true)
+    //moving Sphere
+    sphere(const point3& center1, const point3& center2, double radius, shared_ptr<material> mat)
+    : m_center(center1), m_radius(fmax(0,radius)), m_mat(mat), is_moving(true)
     {
         auto radius_vec = vec3(m_radius, m_radius, m_radius);
         aabb box1(center1 - radius_vec, center1 + radius_vec);
@@ -53,6 +53,29 @@ class sphere : public hittable {
         return true;
     }
     aabb bounding_box() const override { return bbox; }
+
+    double pdf_value(const point3& origin, const vec3& direction) const override {
+        // This method only works for stationary spheres.
+
+        hit_record rec;
+        if (!this->hit(ray(origin, direction), interval(0.001, INFINITY), rec))
+            return 0;
+
+        auto dist_squared = (sphere_center(0) - origin).length_squared();
+        auto cos_theta_max = std::sqrt(1 - m_radius*m_radius/dist_squared);
+        auto solid_angle = 2*PI*(1-cos_theta_max);
+
+        return  1 / solid_angle;
+    }
+
+    vec3 random(const point3& origin) const override {
+        vec3 direction = sphere_center(0) - origin;
+        auto distance_squared = direction.length_squared();
+        onb uvw(direction);
+        return uvw.transform(random_to_sphere(m_radius, distance_squared));
+    }
+
+
   private:
     point3 m_center;
     double m_radius;
@@ -80,6 +103,17 @@ class sphere : public hittable {
 
         u = phi / (2*PI);
         v = theta / PI;
+    }
+    static vec3 random_to_sphere(double radius, double distance_squared) {
+        auto r1 = random_double();
+        auto r2 = random_double();
+        auto z = 1 + r2*(std::sqrt(1-radius*radius/distance_squared) - 1);
+
+        auto phi = 2*PI*r1;
+        auto x = std::cos(phi) * std::sqrt(1-z*z);
+        auto y = std::sin(phi) * std::sqrt(1-z*z);
+
+        return vec3(x, y, z);
     }
 };
 

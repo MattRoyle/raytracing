@@ -129,6 +129,7 @@ class camera {
         auto p = random_in_unit_disk();
         return cam_center + (p[0] * defocus_disk_u) + (p[1] * defocus_disk_v);
     }
+    
     colour ray_colour(const ray& r, int depth, const hittable& world, const hittable& lights) {
         if(depth<=0)
             return colour(0,0,0);//exceeded max bounce limit so no more light is added
@@ -139,25 +140,26 @@ class camera {
         if(!world.hit(r, interval(0.001, INF), record))
             return background_colour;
 
-        ray scattered;
-        colour attenuation;
-        double pdf_value;
+        scatter_record scatter_rec;
         colour emitted_color = record.mat->emitted(r, record, record.u, record.v, record.p);
         
-        if (!record.mat->scatter(r, record, attenuation, scattered, pdf_value))//if the ray doesn't get absorbed
+        if (!record.mat->scatter(r, record, scatter_rec))//if the ray doesn't get absorbed
             return emitted_color;//ray was absorbed only return the emission colour
-        
-        auto pdf0 = make_shared<hittable_pdf>(lights, record.p);
-        auto pdf1 = make_shared<cosine_pdf>(record.normal);
-        mixture_pdf mixed_pdf(pdf0, pdf1);
 
-        scattered = ray(record.p, mixed_pdf.generate(), r.time());
-        pdf_value = mixed_pdf.value(scattered.direction());
+        if (scatter_rec.skip_pdf)
+            return scatter_rec.attenuation * ray_colour(scatter_rec.skip_pdf_ray, depth - 1, world, lights);//implicitly sampled ray to skip pdf for specular
+
+        auto light_ptr = make_shared<hittable_pdf>(lights, record.p);
+        
+        mixture_pdf mixed_pdf(light_ptr, scatter_rec.pdf_ptr);
+
+        ray scattered = ray(record.p, mixed_pdf.generate(), r.time());
+        auto pdf_value = mixed_pdf.value(scattered.direction());
         
         double scattering_pdf = record.mat->scattering_pdf(r, record, scattered);
 
         colour sample_colour = ray_colour(scattered, depth-1, world, lights);
-        colour colour_from_scatter = (attenuation * scattering_pdf * sample_colour) / pdf_value; //pdf integration formula
+        colour colour_from_scatter = (scatter_rec.attenuation * scattering_pdf * sample_colour) / pdf_value; //pdf integration formula
 
         return emitted_color + colour_from_scatter;
     }
